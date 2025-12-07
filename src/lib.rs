@@ -9,7 +9,10 @@ use std::fs;
 pub fn no_std_env(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as LitStr);
     let value = input.value();
-
+    let cwd = match std::env::current_dir() {
+        Ok(path) => path.display().to_string(),
+        Err(_) => String::from("<unknown>")
+    };
     /*
      * check .env file
      */
@@ -35,6 +38,9 @@ pub fn no_std_env(tokens: TokenStream) -> TokenStream {
             return quote! { #env_value }.into();
         }
     }
+    else {
+        return quote! { compile_error!("failed to read .env file in {}", #cwd)}.into()
+    }
 
     /*
      * check environment variable
@@ -42,7 +48,8 @@ pub fn no_std_env(tokens: TokenStream) -> TokenStream {
     let env_value = match std::env::var(&value) {
         Ok(val) => val,
         Err(_) => {
-            return quote! { compile_error!("environment variable {} not set", stringify!(#value))}.into() ;
+            let s = format!("environment variable {} not set in {}", value, cwd);
+            return quote! { compile_error!(#s)}.into() ;
         }
     } ;
 
