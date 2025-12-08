@@ -3,7 +3,7 @@ use quote::quote;
 use syn::{parse_macro_input, LitStr};
 use std::path::Path;
 use std::collections::HashMap;
-use std::fs;
+use std::{fs, path};
 
 #[proc_macro]
 pub fn no_std_env(tokens: TokenStream) -> TokenStream {
@@ -16,7 +16,8 @@ pub fn no_std_env(tokens: TokenStream) -> TokenStream {
     /*
      * check .env file
      */
-    if Path::new(".env").exists() {
+    let p = Path::new(".env") ;
+    if p.exists() {
         let mut env_map = HashMap::new();
         let contents  = match fs::read_to_string(".env") {
             Ok(contents) => contents,
@@ -39,7 +40,8 @@ pub fn no_std_env(tokens: TokenStream) -> TokenStream {
         }
     }
     else {
-        return quote! { compile_error!("failed to read .env file in {}", #cwd)}.into()
+        let err = format!("failed to find .env file in {:?}", path::absolute(p).unwrap() );
+        return quote! { compile_error!(#err)}.into()
     }
 
     /*
